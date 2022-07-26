@@ -11,6 +11,26 @@ public enum LockType {
     SIX, // shared intention exclusive
     NL;  // no lock held
 
+    private static boolean[][] compatibleArray = {
+            //IS   IX    S     SIX   X      NL
+            {true, true, true, true, false, true}, // IS
+            {true, true, false, false, false, true},//IX
+            {true, false, true, false, false, true},//S
+            {true, false, false, false, false, true},//SIX
+            {false, false, false, false, false, true},//X
+            {true, true, true, true, true, true}//NL
+    };
+
+    private static int LockTypeToInt(LockType a){
+        switch (a){
+            case IS: return 0;
+            case IX: return 1;
+            case S: return 2;
+            case SIX: return 3;
+            case X: return 4;
+            default: return 5;
+        }
+    }
     /**
      * This method checks whether lock types A and B are compatible with
      * each other. If a transaction can hold lock type A on a resource
@@ -22,8 +42,7 @@ public enum LockType {
             throw new NullPointerException("null lock type");
         }
         // TODO(proj4_part1): implement
-
-        return false;
+        return compatibleArray[LockTypeToInt(a)][LockTypeToInt(b)];
     }
 
     /**
@@ -54,8 +73,14 @@ public enum LockType {
             throw new NullPointerException("null lock type");
         }
         // TODO(proj4_part1): implement
-
-        return false;
+        switch (parentLockType){
+            case S: return childLockType == NL;
+            case X: return childLockType == NL;
+            case IS: return childLockType == IS || childLockType == S || childLockType == NL;
+            case IX: return true;
+            case SIX: return childLockType == X || childLockType == IX || childLockType == NL;
+            default: return childLockType == NL;
+        }
     }
 
     /**
@@ -69,8 +94,14 @@ public enum LockType {
             throw new NullPointerException("null lock type");
         }
         // TODO(proj4_part1): implement
-
-        return false;
+        switch (required){
+            case S: return substitute == S || substitute == X || substitute == SIX;
+            case X: return substitute == X;
+            case IS: return substitute == IS || substitute == IX;
+            case IX: return substitute == IX;
+            case SIX: return substitute == SIX;
+            default: return true;
+        }
     }
 
     /**

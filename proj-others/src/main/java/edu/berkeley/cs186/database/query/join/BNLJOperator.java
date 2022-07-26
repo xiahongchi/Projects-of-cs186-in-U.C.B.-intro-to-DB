@@ -87,6 +87,12 @@ public class BNLJOperator extends JoinOperator {
          */
         private void fetchNextLeftBlock() {
             // TODO(proj3_part1): implement
+            if(leftSourceIterator.hasNext()) {
+                leftBlockIterator = getBlockIterator(leftSourceIterator, BNLJOperator.this.getLeftSource().getSchema(),
+                        BNLJOperator.this.numBuffers - 2);
+                leftBlockIterator.markNext();
+                leftRecord = leftBlockIterator.next();
+            }
         }
 
         /**
@@ -101,6 +107,10 @@ public class BNLJOperator extends JoinOperator {
          */
         private void fetchNextRightPage() {
             // TODO(proj3_part1): implement
+            if(rightSourceIterator.hasNext()){
+                rightPageIterator = getBlockIterator(rightSourceIterator, BNLJOperator.this.getRightSource().getSchema(), 1);
+                rightPageIterator.markNext();
+            }
         }
 
         /**
@@ -113,7 +123,37 @@ public class BNLJOperator extends JoinOperator {
          */
         private Record fetchNextRecord() {
             // TODO(proj3_part1): implement
-            return null;
+            while(true) {
+                while (rightPageIterator.hasNext()) {
+                    Record rightRecord = rightPageIterator.next();
+                    if (compare(leftRecord, rightRecord) == 0) {
+                        return leftRecord.concat(rightRecord);
+                    }
+                }
+
+                if (leftBlockIterator.hasNext()) {
+                    rightPageIterator.reset();
+                    leftRecord = leftBlockIterator.next();
+                }
+                else {
+                    if(rightSourceIterator.hasNext()){
+                        fetchNextRightPage();
+                        leftBlockIterator.reset();
+                        leftRecord = leftBlockIterator.next();
+                    }
+                    else{
+                        if(leftSourceIterator.hasNext()){
+                            rightSourceIterator.reset();
+                            fetchNextRightPage();
+                            fetchNextLeftBlock();
+                        }
+                        else{
+                            return null;
+                        }
+                    }
+
+                }
+            }
         }
 
         /**
